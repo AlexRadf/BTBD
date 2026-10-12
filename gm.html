@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Night Shift — Case Files</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Oswald:wght@500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cg fill='%23e4ae3c'%3E%3Crect x='1' y='12' width='14' height='3'/%3E%3Crect x='1' y='8' width='4' height='3'/%3E%3Crect x='11' y='8' width='4' height='3'/%3E%3Crect x='1' y='4' width='14' height='3'/%3E%3Crect x='6' y='0' width='4' height='3'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="gm">
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="topbar no-print">
+    <a class="brand" href="./">NIGHT SHIFT</a>
+    <span class="topbar-note">Case files · GM only</span>
+  </header>
+
+  <main class="gm-main">
+    <section class="gm-controls no-print">
+      <div class="panel">
+        <h2>Pull files from the sheet</h2>
+        <p class="hint" id="endpoint-hint"></p>
+        <form id="key-form" class="inline-form">
+          <input id="gm-key" type="password" placeholder="GM key" autocomplete="current-password">
+          <button class="btn btn-small" type="submit">Pull files</button>
+        </form>
+        <p class="status" id="remote-status" aria-live="polite"></p>
+      </div>
+
+      <div class="panel">
+        <h2>Add a dossier code</h2>
+        <p class="hint">Paste one or more codes a player sent you. They're kept in this browser.</p>
+        <form id="import-form">
+          <textarea id="import-code" rows="3" placeholder="DOSSIER:…"></textarea>
+          <button class="btn btn-small" type="submit">Add</button>
+        </form>
+        <p class="status" id="import-status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section class="gm-board">
+      <div class="board-head no-print">
+        <h1 class="headline small">The crew <span id="crew-count"></span></h1>
+        <div class="board-actions">
+          <button class="btn btn-small btn-ghost" id="btn-print-all" type="button">Print all</button>
+          <button class="btn btn-small btn-ghost" id="btn-export" type="button">Export JSON</button>
+        </div>
+      </div>
+      <div class="crew-list no-print" id="crew-list"></div>
+      <div id="file-view"></div>
+    </section>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/questions.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/gm.js"></script>
+</body>
+</html>

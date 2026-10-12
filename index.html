@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Night Shift — Crew Intake</title>
+  <meta name="description" content="New hire paperwork. Fill it out. Don't ask questions.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Oswald:wght@500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cg fill='%23e4ae3c'%3E%3Crect x='1' y='12' width='14' height='3'/%3E%3Crect x='1' y='8' width='4' height='3'/%3E%3Crect x='11' y='8' width='4' height='3'/%3E%3Crect x='1' y='4' width='14' height='3'/%3E%3Crect x='6' y='0' width='4' height='3'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <span class="brand">NIGHT SHIFT</span>
+    <span class="topbar-note">Crew Intake · Form 13-B</span>
+  </header>
+
+  <main id="app">
+    <!-- 1. Briefing -->
+    <section id="screen-brief" class="screen">
+      <p class="eyebrow">Message received 02:13 · sender unknown</p>
+      <h1 class="headline">You're on the crew.</h1>
+      <div class="note paper">
+        <p>One job. One night. Biggest score any of us will ever see.</p>
+        <p>You don't need to know <span class="redact">where</span>. You don't need to know <span class="redact">who owns it</span>. A van picks you up. You go in, you do your part, you walk out rich.</p>
+        <p>The boss doesn't learn names. Fill out the paperwork so somebody knows who to send the money to.</p>
+        <p class="sig">— Management</p>
+      </div>
+
+      <div class="rules">
+        <h2>How the night works</h2>
+        <ol>
+          <li><strong>The Tower.</strong> When you try something that could go wrong, you pull a block. Pull it clean, you pull it off.</li>
+          <li><strong>When it falls, you're gone.</strong> Knock the tower over and your goon is out of the story. No saves. No do-overs.</li>
+          <li><strong>You can walk away.</strong> Refuse to pull, and you fail — but you live. For now.</li>
+          <li><strong>Answer honestly.</strong> Everything you write here is true about your goon. The night will remember it.</li>
+        </ol>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-start">Start the paperwork</button>
+        <button class="btn btn-ghost" id="btn-resume" hidden>Resume my file</button>
+      </div>
+    </section>
+
+    <!-- 2. Pick a role -->
+    <section id="screen-role" class="screen" hidden>
+      <p class="eyebrow">Step 1 of 2</p>
+      <h1 class="headline">What do you do?</h1>
+      <p class="lede">Every crew needs specialists. Pick the job you were hired for. Coordinate with the others — two Wheelmen means nobody's watching the door.</p>
+      <div class="role-grid" id="role-grid"></div>
+    </section>
+
+    <!-- 3. Questionnaire -->
+    <section id="screen-form" class="screen" hidden>
+      <p class="eyebrow">Step 2 of 2 · <button class="linkish" id="btn-change-role" type="button">change role</button></p>
+      <h1 class="headline" id="form-title">Personnel file</h1>
+      <p class="lede">Short answers are fine. Interesting answers are better. Your work saves automatically on this device.</p>
+
+      <div class="form-layout">
+        <form id="intake" class="paper form-paper" novalidate>
+          <fieldset class="identity">
+            <legend>Identification</legend>
+            <label>Your name <small>(the real you, holding the dice)</small>
+              <input name="playerName" autocomplete="name" maxlength="80" required>
+            </label>
+            <label>Your goon's name <small>(what their mother calls them)</small>
+              <input name="characterName" maxlength="80">
+            </label>
+            <label>What do they look like? <small>(one line)</small>
+              <input name="look" maxlength="200" placeholder="Broken nose, borrowed suit, smells like motor oil">
+            </label>
+          </fieldset>
+          <div id="questions"></div>
+          <div class="submit-row">
+            <p class="save-state" id="save-state" aria-live="polite"></p>
+            <button class="btn btn-primary" type="submit" id="btn-submit">File it with the boss</button>
+          </div>
+        </form>
+
+        <aside class="tower-panel" aria-label="Progress">
+          <div class="tower" id="tower" aria-hidden="true"></div>
+          <p class="tower-count" id="tower-count">0 / 0</p>
+          <p class="tower-label">blocks in place</p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- 4. Filed -->
+    <section id="screen-done" class="screen" hidden>
+      <p class="eyebrow" id="done-eyebrow">Received</p>
+      <h1 class="headline">Filed.</h1>
+      <p class="lede" id="done-message"></p>
+
+      <div class="code-box" id="code-box" hidden>
+        <p><strong>Your dossier code.</strong> Copy this and send it to the GM — it holds your whole file.</p>
+        <textarea id="dossier-code" readonly rows="4"></textarea>
+        <button class="btn btn-small" id="btn-copy" type="button">Copy code</button>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-ghost" id="btn-edit" type="button">Edit my answers</button>
+        <button class="btn btn-ghost" id="btn-show-code" type="button">Show my dossier code</button>
+      </div>
+
+      <div id="preview"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Do not discuss this job over the phone. Do not discuss this job after dark.</p>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/questions.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/intake.js"></script>
+</body>
+</html>
