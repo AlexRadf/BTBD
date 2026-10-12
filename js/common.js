@@ -95,7 +95,8 @@ function renderDossier(d) {
   }
   return el(
     "article",
-    { class: "case-file" },
+    { class: "case-file paper stained burned" },
+    el("span", { class: "clip", "aria-hidden": "true" }),
     el(
       "header",
       { class: "file-head" },

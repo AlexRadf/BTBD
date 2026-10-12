@@ -24,14 +24,18 @@
     <section id="screen-brief" class="screen">
       <p class="eyebrow">Message received 02:13 · sender unknown</p>
       <h1 class="headline">You're on the crew.</h1>
-      <div class="note paper">
+      <div class="note paper stained">
+        <span class="clip" aria-hidden="true"></span>
+        <span class="stamp-mark" aria-hidden="true">Burn after reading</span>
         <p>One job. One night. Biggest score any of us will ever see.</p>
         <p>You don't need to know <span class="redact">where</span>. You don't need to know <span class="redact">who owns it</span>. A van picks you up. You go in, you do your part, you walk out rich.</p>
         <p>The boss doesn't learn names. Fill out the paperwork so somebody knows who to send the money to.</p>
         <p class="sig">— Management</p>
       </div>
 
-      <div class="rules">
+      <div class="rules index-card">
+        <span class="tape tape-l" aria-hidden="true"></span>
+        <span class="tape tape-r" aria-hidden="true"></span>
         <h2>How the night works</h2>
         <ol>
           <li><strong>The Tower.</strong> When you try something that could go wrong, you pull a block. Pull it clean, you pull it off.</li>
@@ -62,7 +66,8 @@
       <p class="lede">Short answers are fine. Interesting answers are better. Your work saves automatically on this device.</p>
 
       <div class="form-layout">
-        <form id="intake" class="paper form-paper" novalidate>
+        <form id="intake" class="paper form-paper stained" novalidate>
+          <span class="clip" aria-hidden="true"></span>
           <fieldset class="identity">
             <legend>Identification</legend>
             <label>Your name <small>(the real you, holding the dice)</small>
@@ -96,7 +101,7 @@
       <h1 class="headline">Filed.</h1>
       <p class="lede" id="done-message"></p>
 
-      <div class="code-box" id="code-box" hidden>
+      <div class="code-box index-card" id="code-box" hidden>
         <p><strong>Your dossier code.</strong> Copy this and send it to the GM — it holds your whole file.</p>
         <textarea id="dossier-code" readonly rows="4"></textarea>
         <button class="btn btn-small" id="btn-copy" type="button">Copy code</button>
