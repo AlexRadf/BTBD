@@ -36,6 +36,8 @@ Files land in a spreadsheet automatically, and the GM page pulls them in with on
 
 Each player's browser gets its own file ID, so re-filing updates their row instead of adding a new one. The sheet shows a summary in each row, with the full dossier as JSON in the last column.
 
+To remove files, open one on the GM page and click **Delete file**, or use **Delete all** (it asks you to type DELETE). This removes them from the sheet and from your browser. It needs the current `Code.gs` deployed.
+
 If you change `Code.gs` later, use **Deploy → Manage deployments → Edit → New version** so the URL stays the same.
 
 ### If it isn't working

@@ -51,9 +51,17 @@ function renderList() {
     "div",
     { class: "file-tools no-print" },
     el("button", { class: "btn btn-small", type: "button", onclick: () => printFiles([d]) }, "Print this file"),
-    d._src === "code"
-      ? el("button", { class: "btn btn-small btn-ghost", type: "button", onclick: () => removeLocal(d.id) }, "Remove pasted copy")
-      : null
+    el(
+      "button",
+      {
+        class: "btn btn-small btn-ghost",
+        type: "button",
+        onclick: () => {
+          if (confirm(`Delete ${d.alias || "this file"} for good? Their dossier is removed from the sheet and this browser.`)) deleteFiles([d.id], d.alias || "the file");
+        },
+      },
+      "Delete file"
+    )
   );
   $("#file-view").replaceChildren(tools, renderDossier(d));
   if (typeof renderNight === "function") renderNight();
@@ -67,23 +75,45 @@ function printFiles(files) {
   window.print();
 }
 
-function removeLocal(id) {
-  if (!confirm("Remove this pasted copy from this browser?")) return;
-  local = local.filter((d) => d.id !== id);
-  store(LOCAL_KEY, local);
-  renderList();
-}
-
 // Plain fetch first: it carries no Google cookies, so being signed into several Google
 // accounts can't send it to the wrong one. JSONP is the fallback for when CORS gets in the way.
-async function readSheet(key) {
+async function readSheet(key, extra = {}) {
+  const params = { key, ...extra };
   try {
-    const res = await fetch(`${CONFIG.ENDPOINT}?key=${encodeURIComponent(key)}`, { credentials: "omit" });
+    const res = await fetch(`${CONFIG.ENDPOINT}?${new URLSearchParams(params)}`, { credentials: "omit" });
     return await res.json();
   } catch (err) {
     console.warn("fetch failed, trying JSONP", err);
-    return jsonp(CONFIG.ENDPOINT, { key });
+    return jsonp(CONFIG.ENDPOINT, params);
   }
+}
+
+// Deletes from the sheet (if it's there) and from this browser's pasted codes.
+// `ids` is a list of dossier ids, or "*" for everything.
+async function deleteFiles(ids, what) {
+  const everything = ids === "*";
+  const onSheet = everything ? remote.length > 0 : remote.some((d) => ids.includes(d.id));
+  const status = $("#remote-status");
+  if (onSheet) {
+    const key = store(KEY_KEY);
+    if (!key) return alert("Pull files with your GM key first, so the sheet knows it's you.");
+    status.textContent = `Shredding ${what}…`;
+    try {
+      const json = await readSheet(key, { delete: everything ? "*" : ids.join(",") });
+      if (!json.ok) throw new Error(json.error || "rejected");
+      // An old deployment ignores ?delete and just lists the files.
+      if (json.deleted === undefined) throw new Error("the deployed script is out of date — paste the latest Code.gs and deploy a new version");
+      remote = everything ? [] : remote.filter((d) => !ids.includes(d.id));
+      status.textContent = `Deleted ${json.deleted} file(s) from the sheet.`;
+    } catch (err) {
+      status.textContent = `Couldn't delete: ${err.message}.`;
+      return;
+    }
+  }
+  local = everything ? [] : local.filter((d) => !ids.includes(d.id));
+  store(LOCAL_KEY, local);
+  selected = null;
+  renderList();
 }
 
 async function pull(key) {
@@ -136,6 +166,13 @@ $("#import-form").addEventListener("submit", (e) => {
 $("#btn-print-all").addEventListener("click", () => {
   const list = allDossiers();
   if (list.length) printFiles(list);
+});
+
+$("#btn-delete-all").addEventListener("click", () => {
+  const n = allDossiers().length;
+  if (!n) return;
+  const typed = prompt(`This deletes all ${n} file(s), from the sheet and from this browser. It can't be undone.\n\nType DELETE to go ahead.`);
+  if (typed && typed.trim().toUpperCase() === "DELETE") deleteFiles("*", "every file");
 });
 
 $("#btn-export").addEventListener("click", () => {

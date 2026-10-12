@@ -68,10 +68,15 @@ function doGet(e) {
   } catch (err) {
     return reply({ ok: false, error: String(err.message || err) });
   }
+
+  // GM housekeeping: ?delete=<id>[,<id>…] removes those files; ?delete=* clears every file.
+  if (params.delete) return reply(deleteFiles_(sheet, String(params.delete)));
+
   const last = sheet.getLastRow();
   const rows = last > 1 ? sheet.getRange(2, 1, last - 1, HEADERS.length).getValues() : [];
   const dossiers = [];
   rows.forEach(function (r) {
+    if (!r[0]) return;
     try {
       dossiers.push(JSON.parse(String(r[7]).replace(/^'/, '')));
     } catch (err) {
@@ -79,6 +84,33 @@ function doGet(e) {
     }
   });
   return reply({ ok: true, dossiers: dossiers });
+}
+
+function deleteFiles_(sheet, which) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const last = sheet.getLastRow();
+    if (last < 2) return { ok: true, deleted: 0 };
+    const all = which === '*';
+    const ids = which.split(',');
+    const col = sheet.getRange(2, 1, last - 1, 1).getValues();
+    const rows = [];
+    col.forEach(function (r, i) {
+      if (all || ids.indexOf(String(r[0])) >= 0) rows.push(i + 2);
+    });
+    if (rows.length && rows.length === col.length) {
+      // Sheets won't delete every row under a frozen header, so blank the first and drop the rest.
+      sheet.getRange(2, 1, 1, sheet.getMaxColumns()).clearContent();
+      if (last > 2) sheet.deleteRows(3, last - 2);
+    } else {
+      // Bottom-up, so earlier row numbers stay valid as rows disappear.
+      for (let i = rows.length - 1; i >= 0; i--) sheet.deleteRow(rows[i]);
+    }
+    return { ok: true, deleted: rows.length };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function sheet_() {
