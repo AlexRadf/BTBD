@@ -49,15 +49,24 @@ function doPost(e) {
   return json_({ ok: true });
 }
 
+// The GM page reads this with a <script> tag (JSONP), which sidesteps browser CORS checks.
 function doGet(e) {
+  const params = e.parameter || {};
+  const cb = /^[A-Za-z_$][\w$]{0,60}$/.test(params.callback || '') ? params.callback : null;
+  const reply = function (obj) {
+    if (!cb) return json_(obj);
+    return ContentService.createTextOutput(cb + '(' + JSON.stringify(obj) + ');').setMimeType(ContentService.MimeType.JAVASCRIPT);
+  };
+  if (params.ping) return reply({ ok: true, pong: true });
   const key = PropertiesService.getScriptProperties().getProperty('GM_KEY');
-  if (!key || !e.parameter || e.parameter.key !== key) return json_({ ok: false, error: 'unauthorized' });
+  if (!key) return reply({ ok: false, error: 'GM_KEY script property is not set' });
+  if (params.key !== key) return reply({ ok: false, error: 'unauthorized' });
 
   let sheet;
   try {
     sheet = sheet_();
   } catch (err) {
-    return json_({ ok: false, error: String(err.message || err) });
+    return reply({ ok: false, error: String(err.message || err) });
   }
   const last = sheet.getLastRow();
   const rows = last > 1 ? sheet.getRange(2, 1, last - 1, HEADERS.length).getValues() : [];
@@ -69,7 +78,7 @@ function doGet(e) {
       // skip rows edited into nonsense by hand
     }
   });
-  return json_({ ok: true, dossiers: dossiers });
+  return reply({ ok: true, dossiers: dossiers });
 }
 
 function sheet_() {

@@ -119,3 +119,29 @@ function renderDossier(d) {
     ...body
   );
 }
+
+// Calls the Apps Script with a <script> tag instead of fetch, so Google's redirects and
+// error pages can't trip the browser's CORS check. Rejects with a readable reason.
+function jsonp(url, params = {}, timeoutMs = 15000) {
+  return new Promise((resolve, reject) => {
+    const cb = "__ns" + Math.random().toString(36).slice(2);
+    const q = new URLSearchParams({ ...params, callback: cb });
+    const s = document.createElement("script");
+    const done = (fn, v) => {
+      clearTimeout(timer);
+      delete window[cb];
+      s.remove();
+      fn(v);
+    };
+    const timer = setTimeout(
+      () => done(reject, new Error("no answer — the deployed script may be an old version, or it crashed")),
+      timeoutMs
+    );
+    window[cb] = (data) => done(resolve, data);
+    s.onerror = () => done(reject, new Error("Google refused — check the deployment's access is set to Anyone"));
+    // A script that loads but never calls back is an old deployment or a Google error page.
+    s.onload = () => setTimeout(() => window[cb] && done(reject, new Error("got a page instead of data — redeploy the latest Code.gs as a new version")), 50);
+    s.src = `${url}${url.includes("?") ? "&" : "?"}${q}`;
+    document.head.append(s);
+  });
+}

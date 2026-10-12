@@ -27,6 +27,7 @@ function renderList() {
   if (!list.length) {
     $("#crew-list").replaceChildren(el("p", { class: "empty", text: "No files yet. Pull from the sheet or paste a dossier code." }));
     $("#file-view").replaceChildren();
+    if (typeof renderNight === "function") renderNight();
     return;
   }
   if (!selected || !list.some((d) => d.id === selected)) selected = list[0].id;
@@ -55,6 +56,7 @@ function renderList() {
       : null
   );
   $("#file-view").replaceChildren(tools, renderDossier(d));
+  if (typeof renderNight === "function") renderNight();
 }
 
 function printFiles(files) {
@@ -77,15 +79,17 @@ async function pull(key) {
   if (!CONFIG.ENDPOINT) return;
   status.textContent = "Calling the sheet…";
   try {
-    const res = await fetch(`${CONFIG.ENDPOINT}?key=${encodeURIComponent(key)}`);
-    const json = await res.json();
+    const json = await jsonp(CONFIG.ENDPOINT, { key });
     if (!json.ok) throw new Error(json.error || "Rejected");
     remote = json.dossiers;
     store(KEY_KEY, key);
     status.textContent = `Pulled ${remote.length} file(s) at ${new Date().toLocaleTimeString()}.`;
     renderList();
   } catch (err) {
-    status.textContent = err.message === "unauthorized" ? "Wrong key." : `Couldn't reach the sheet (${err.message}).`;
+    status.replaceChildren(
+      err.message === "unauthorized" ? "Wrong key." : `Couldn't reach the sheet: ${err.message}. `,
+      err.message === "unauthorized" ? "" : el("a", { href: CONFIG.ENDPOINT, target: "_blank", rel: "noopener" }, "Open the script URL to see what Google says.")
+    );
   }
 }
 

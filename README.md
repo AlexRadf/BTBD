@@ -38,6 +38,28 @@ Each player's browser gets its own file ID, so re-filing updates their row inste
 
 If you change `Code.gs` later, use **Deploy → Manage deployments → Edit → New version** so the URL stays the same.
 
+### If it isn't working
+
+Open your `/exec` URL in a private/incognito window. You should see `{"ok":false,"error":"unauthorized"}`.
+
+- **A Google sign-in page**: under Deploy → Manage deployments, set *Who has access* to **Anyone**. "Anyone with a Google account" isn't enough.
+- **"Script function not found"**, or the GM page says *got a page instead of data*: the deployment is running old code. Paste in the latest `Code.gs`, then Deploy → Manage deployments → Edit (pencil) → Version: **New version** → Deploy.
+- **`GM_KEY script property is not set`**: add it under Project Settings → Script Properties.
+- **An error about a spreadsheet**: the script has to be opened from the Sheet (Extensions → Apps Script). Or add a `SHEET_ID` script property with the long ID from the Sheet's URL.
+
+Then try `…/exec?key=YOUR_GM_KEY`. It should list the files.
+
+## The night (GM tab)
+
+The second tab on `gm.html` is for running the game:
+
+- **The tower**: tap *Pull* each time someone pulls a block. The gauge shows how shaky the tower is getting. *It fell* marks that goon as taken and deals you a scene describing how they vanish.
+- **Pressure points**: for the selected goon, scares built from their own answers.
+- **Something in the building**: draws a random unsettling beat, aimed at a goon who's still in.
+- **Ambience**: rain and building hum loops, plus one-shot sounds, all generated in the browser.
+
+Pull counts and who's been taken are saved in your browser, so a refresh mid-game is safe.
+
 ## Running locally
 
 ```sh

@@ -141,16 +141,26 @@ function buildDossier() {
   };
 }
 
+// Resolves true when the sheet confirmed it, "unconfirmed" when it went out but the reply
+// couldn't be read (Google's redirect often trips CORS even though the row was written).
 async function sendToBoss(dossier) {
   if (!CONFIG.ENDPOINT) return false;
-  // text/plain keeps this a "simple" request, which Apps Script accepts without a CORS preflight.
-  const res = await fetch(CONFIG.ENDPOINT, { method: "POST", body: JSON.stringify(dossier) });
+  const body = JSON.stringify(dossier);
+  let res;
+  try {
+    // text/plain keeps this a "simple" request, which Apps Script accepts without a CORS preflight.
+    res = await fetch(CONFIG.ENDPOINT, { method: "POST", body });
+  } catch {
+    // Unreadable reply. Send it again blind; Apps Script still runs doPost, and re-filing
+    // the same id just overwrites the same row.
+    await fetch(CONFIG.ENDPOINT, { method: "POST", body, mode: "no-cors" });
+    return "unconfirmed";
+  }
   const text = await res.text();
   let json;
   try {
     json = JSON.parse(text);
   } catch {
-    // Apps Script answers with an HTML page when access isn't "Anyone" or the script crashed.
     throw new Error(/sign ?in|accounts\.google/i.test(text) ? "the script wants a Google sign-in" : `unexpected reply (HTTP ${res.status})`);
   }
   if (!json.ok) throw new Error(json.error || "rejected");
@@ -213,9 +223,11 @@ function showDone(dossier, sent, failed) {
   const code = encodeDossier(dossier);
   $("#dossier-code").value = code;
   if (sent) {
-    $("#done-eyebrow").textContent = "Received · " + formatDate(dossier.updatedAt);
-    $("#done-message").textContent = "The boss has your file. Sit tight, keep your phone on, and don't tell anyone where you're going tonight. You can come back and change your answers until the van shows up.";
-    $("#code-box").hidden = true;
+    $("#done-eyebrow").textContent = (sent === true ? "Received · " : "Sent · ") + formatDate(dossier.updatedAt);
+    $("#done-message").textContent =
+      "The boss has your file. Sit tight, keep your phone on, and don't tell anyone where you're going tonight. You can come back and change your answers until the van shows up." +
+      (sent === true ? "" : " (If the GM says it never arrived, send them the code below.)");
+    $("#code-box").hidden = sent === true;
   } else {
     $("#done-eyebrow").textContent = failed ? "The line went dead" : "Hand delivery";
     $("#done-message").textContent = failed

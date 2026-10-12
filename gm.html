@@ -19,7 +19,12 @@
     <span class="topbar-note">Case files · GM only</span>
   </header>
 
-  <main class="gm-main">
+  <nav class="gm-tabs no-print" aria-label="GM tools">
+    <button type="button" class="gm-tab" data-tab="files">Case files</button>
+    <button type="button" class="gm-tab" data-tab="night">The night</button>
+  </nav>
+
+  <main class="gm-main" id="files-view">
     <section class="gm-controls no-print">
       <div class="panel index-card">
         <h2>Pull files from the sheet</h2>
@@ -55,9 +60,61 @@
     </section>
   </main>
 
+  <main class="night-main no-print" id="night-view" hidden>
+    <section class="night-col">
+      <div class="paper night-card stained" style="--ring-pos: right -70px bottom -80px">
+        <h2 class="night-h">The tower</h2>
+        <div class="tower-meter">
+          <div class="tower-gauge" id="tower-gauge" aria-hidden="true"><span></span></div>
+          <p><strong id="pull-total">0</strong> pulls since it was built · <span id="tower-mood"></span></p>
+        </div>
+        <ul class="night-crew" id="night-crew"></ul>
+        <div class="night-actions">
+          <button class="btn btn-small btn-ghost" type="button" id="btn-rebuild">Rebuild tower</button>
+          <button class="btn btn-small btn-ghost" type="button" id="btn-new-night">New night</button>
+        </div>
+      </div>
+      <div class="index-card night-card scene" id="scene" hidden>
+        <h2 class="night-h" id="scene-title"></h2>
+        <p id="scene-text"></p>
+      </div>
+    </section>
+
+    <section class="night-col">
+      <div class="paper night-card">
+        <h2 class="night-h">Pressure points <span id="hooks-who"></span></h2>
+        <p class="hint">What their own answers give you. Tap a goon in the tower list to switch.</p>
+        <ul class="hooks" id="hooks"></ul>
+      </div>
+
+      <div class="index-card night-card">
+        <h2 class="night-h">Something in the building</h2>
+        <p class="beat" id="beat">Draw a beat when the room gets too comfortable.</p>
+        <button class="btn btn-small" type="button" id="btn-beat">Draw</button>
+      </div>
+
+      <div class="index-card night-card">
+        <h2 class="night-h">Ambience</h2>
+        <div class="sound-row">
+          <button class="btn btn-small btn-ghost sound-loop" type="button" data-loop="rain">Rain</button>
+          <button class="btn btn-small btn-ghost sound-loop" type="button" data-loop="hum">Building hum</button>
+        </div>
+        <div class="sound-row">
+          <button class="btn btn-small" type="button" data-shot="thud">Distant impact</button>
+          <button class="btn btn-small" type="button" data-shot="steps">Footsteps above</button>
+          <button class="btn btn-small" type="button" data-shot="creak">Metal creak</button>
+          <button class="btn btn-small" type="button" data-shot="static">Radio static</button>
+          <button class="btn btn-small" type="button" data-shot="snap">Something moves</button>
+        </div>
+        <label class="volume">Volume <input type="range" id="volume" min="0" max="1" step="0.05" value="0.6"></label>
+      </div>
+    </section>
+  </main>
+
   <script src="js/config.js"></script>
   <script src="js/questions.js"></script>
   <script src="js/common.js"></script>
   <script src="js/gm.js"></script>
+  <script src="js/night.js"></script>
 </body>
 </html>
