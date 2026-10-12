@@ -95,12 +95,12 @@ function renderDossier(d) {
   }
   return el(
     "article",
-    { class: "case-file paper stained burned" },
+    { class: "case-file paper stained burned" + (d.withdrawn ? " withdrawn" : "") },
     el("span", { class: "clip", "aria-hidden": "true" }),
     el(
       "header",
       { class: "file-head" },
-      el("div", { class: "file-stamp", text: role ? role.title : d.role }),
+      el("div", { class: "file-stamp", text: d.withdrawn ? "Withdrawn" : role ? role.title : d.role }),
       el("p", { class: "file-label", text: "Jumpsuit reads" }),
       el("h2", { class: "file-alias", text: d.alias || "UNNAMED" }),
       el(

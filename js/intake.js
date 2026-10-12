@@ -26,6 +26,9 @@ function show(name) {
 // ---------- Role picker ----------
 
 function renderRoles() {
+  const current = roleById(state.role);
+  $("#assigned-bar").hidden = !current;
+  if (current) $("#assigned-role").textContent = current.title;
   const grid = $("#role-grid");
   grid.replaceChildren(
     ...ROLES.map((r) =>
@@ -142,8 +145,15 @@ async function sendToBoss(dossier) {
   if (!CONFIG.ENDPOINT) return false;
   // text/plain keeps this a "simple" request, which Apps Script accepts without a CORS preflight.
   const res = await fetch(CONFIG.ENDPOINT, { method: "POST", body: JSON.stringify(dossier) });
-  const json = await res.json();
-  if (!json.ok) throw new Error(json.error || "Rejected");
+  const text = await res.text();
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    // Apps Script answers with an HTML page when access isn't "Anyone" or the script crashed.
+    throw new Error(/sign ?in|accounts\.google/i.test(text) ? "the script wants a Google sign-in" : `unexpected reply (HTTP ${res.status})`);
+  }
+  if (!json.ok) throw new Error(json.error || "rejected");
   return true;
 }
 
@@ -163,12 +173,12 @@ $("#intake").addEventListener("submit", async (e) => {
   btn.textContent = "Filing…";
   const dossier = buildDossier();
   let sent = false;
-  let failed = false;
+  let failed = null;
   try {
     sent = await sendToBoss(dossier);
   } catch (err) {
     console.error(err);
-    failed = true;
+    failed = err.message || "network error";
   }
   btn.disabled = false;
   btn.textContent = "File it with the boss";
@@ -177,6 +187,25 @@ $("#intake").addEventListener("submit", async (e) => {
   save();
   showDone(dossier, sent, failed);
 });
+
+// Frees up the role. Answers stay saved here in case they pick it (or another) again.
+async function unassign() {
+  const role = roleById(state.role);
+  if (!role) return;
+  if (!confirm(`Unassign yourself from ${role.title}? Your answers stay saved on this device.`)) return;
+  if (state.submitted) {
+    // Tell the boss, so the GM sees the role is open again. Re-filing later reinstates the file.
+    const dossier = { ...buildDossier(), withdrawn: true };
+    sendToBoss(dossier).catch((err) => console.error(err));
+  }
+  state.role = null;
+  state.submitted = false;
+  save();
+  $("#btn-resume").hidden = true;
+  $("#btn-start").hidden = false;
+  renderRoles();
+  show("role");
+}
 
 // ---------- Filed ----------
 
@@ -190,7 +219,7 @@ function showDone(dossier, sent, failed) {
   } else {
     $("#done-eyebrow").textContent = failed ? "The line went dead" : "Hand delivery";
     $("#done-message").textContent = failed
-      ? "Couldn't reach the boss just now. Your file is saved on this device — send the GM the code below so nothing gets lost."
+      ? `Couldn't reach the boss just now (${failed}). Your file is saved on this device — send the GM the code below so nothing gets lost.`
       : "Send the code below to the GM. It holds your whole file.";
     $("#code-box").hidden = false;
   }
@@ -215,6 +244,8 @@ $("#btn-show-code").addEventListener("click", () => {
   $("#code-box").scrollIntoView({ behavior: "smooth", block: "center" });
 });
 $("#btn-edit").addEventListener("click", openForm);
+$("#btn-unassign").addEventListener("click", unassign);
+$("#btn-unassign-form").addEventListener("click", unassign);
 $("#btn-change-role").addEventListener("click", () => {
   renderRoles();
   show("role");

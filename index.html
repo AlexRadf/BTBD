@@ -56,12 +56,16 @@
       <p class="eyebrow">Step 1 of 2</p>
       <h1 class="headline">What do you do?</h1>
       <p class="lede">Every crew needs specialists. Pick the job you were hired for. Coordinate with the others — two Wheelmen means nobody's watching the door.</p>
+      <div class="assigned-bar" id="assigned-bar" hidden>
+        <p>Currently assigned: <strong id="assigned-role"></strong></p>
+        <button class="btn btn-small btn-ghost" id="btn-unassign" type="button">Unassign me</button>
+      </div>
       <div class="role-grid" id="role-grid"></div>
     </section>
 
     <!-- 3. Questionnaire -->
     <section id="screen-form" class="screen" hidden>
-      <p class="eyebrow">Step 2 of 2 · <button class="linkish" id="btn-change-role" type="button">change role</button></p>
+      <p class="eyebrow">Step 2 of 2 · <button class="linkish" id="btn-change-role" type="button">change role</button> · <button class="linkish" id="btn-unassign-form" type="button">unassign me</button></p>
       <h1 class="headline" id="form-title">Personnel file</h1>
       <p class="lede">Short answers are fine. Interesting answers are better. Your work saves automatically on this device.</p>
 

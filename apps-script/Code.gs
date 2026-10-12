@@ -41,6 +41,8 @@ function doPost(e) {
     const i = ids.indexOf(data.id);
     if (i >= 0) sheet.getRange(i + 2, 1, 1, row.length).setValues([row]);
     else sheet.appendRow(row);
+  } catch (err) {
+    return json_({ ok: false, error: String(err.message || err) });
   } finally {
     lock.releaseLock();
   }
@@ -51,7 +53,12 @@ function doGet(e) {
   const key = PropertiesService.getScriptProperties().getProperty('GM_KEY');
   if (!key || !e.parameter || e.parameter.key !== key) return json_({ ok: false, error: 'unauthorized' });
 
-  const sheet = sheet_();
+  let sheet;
+  try {
+    sheet = sheet_();
+  } catch (err) {
+    return json_({ ok: false, error: String(err.message || err) });
+  }
   const last = sheet.getLastRow();
   const rows = last > 1 ? sheet.getRange(2, 1, last - 1, HEADERS.length).getValues() : [];
   const dossiers = [];
@@ -66,7 +73,11 @@ function doGet(e) {
 }
 
 function sheet_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  // Works when the script is opened from a Sheet (Extensions -> Apps Script). For a standalone
+  // script, set a SHEET_ID script property to the long id in the Sheet's URL.
+  const id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
+  const ss = id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) throw new Error('No spreadsheet: open this script from a Google Sheet, or set SHEET_ID');
   let sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);

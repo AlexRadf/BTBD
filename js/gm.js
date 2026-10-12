@@ -15,12 +15,15 @@ function allDossiers() {
     if (!prev || new Date(d.updatedAt) > new Date(prev.updatedAt)) byId.set(d.id, d);
   }
   const order = ROLES.map((r) => r.id);
-  return [...byId.values()].sort((a, b) => order.indexOf(a.role) - order.indexOf(b.role) || (a.alias || "").localeCompare(b.alias || ""));
+  return [...byId.values()].sort(
+    (a, b) => !!a.withdrawn - !!b.withdrawn || order.indexOf(a.role) - order.indexOf(b.role) || (a.alias || "").localeCompare(b.alias || "")
+  );
 }
 
 function renderList() {
   const list = allDossiers();
-  $("#crew-count").textContent = list.length ? `(${list.length})` : "";
+  const active = list.filter((d) => !d.withdrawn).length;
+  $("#crew-count").textContent = list.length ? `(${active})` : "";
   if (!list.length) {
     $("#crew-list").replaceChildren(el("p", { class: "empty", text: "No files yet. Pull from the sheet or paste a dossier code." }));
     $("#file-view").replaceChildren();
@@ -34,9 +37,9 @@ function renderList() {
       const answered = d.answers.filter((a) => a.a).length;
       return el(
         "button",
-        { type: "button", class: "crew-card" + (d.id === selected ? " selected" : ""), onclick: () => ((selected = d.id), renderList()) },
+        { type: "button", class: "crew-card" + (d.id === selected ? " selected" : "") + (d.withdrawn ? " withdrawn" : ""), onclick: () => ((selected = d.id), renderList()) },
         el("span", { class: "crew-alias", text: d.alias || "UNNAMED" }),
-        el("span", { class: "crew-role", text: role ? role.title : d.role }),
+        el("span", { class: "crew-role", text: (d.withdrawn ? "Withdrawn from " : "") + (role ? role.title : d.role) }),
         el("span", { class: "crew-meta", text: `${d.playerName || "?"} · ${answered}/${d.answers.length} · via ${d._src}` })
       );
     })

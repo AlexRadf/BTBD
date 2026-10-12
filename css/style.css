@@ -158,12 +158,17 @@ main#app { max-width: 980px; margin: 0 auto; padding: 48px 16px 80px; }
 .paper {
   position: relative;
   background-color: var(--paper);
+  /* The coffee ring is a background layer multiplied into the sheet, so it never leaves the paper. */
   background-image:
+    var(--stain, none),
     var(--paper-tex),
     radial-gradient(ellipse 60% 40% at 20% 15%, rgba(255, 250, 235, 0.35), transparent 70%),
     radial-gradient(ellipse 50% 35% at 85% 70%, rgba(150, 110, 60, 0.16), transparent 70%),
     radial-gradient(ellipse 40% 30% at 30% 85%, rgba(160, 120, 70, 0.12), transparent 70%);
-  background-size: 300px 300px, 100% 100%, 100% 100%, 100% 100%;
+  background-size: var(--ring-size, 190px) var(--ring-size, 190px), 300px 300px, 100% 100%, 100% 100%, 100% 100%;
+  background-position: var(--ring-pos, right -40px bottom -50px), 0 0, 0 0, 0 0, 0 0;
+  background-repeat: no-repeat, repeat, no-repeat, no-repeat, no-repeat;
+  background-blend-mode: multiply;
   color: var(--ink);
   font-family: var(--type);
   border-radius: 1px;
@@ -176,21 +181,7 @@ main#app { max-width: 980px; margin: 0 auto; padding: 48px 16px 80px; }
 }
 
 /* coffee ring */
-.stained::after {
-  content: "";
-  position: absolute;
-  width: var(--ring-size, 190px);
-  height: var(--ring-size, 190px);
-  top: var(--ring-top, auto);
-  right: var(--ring-right, -40px);
-  bottom: var(--ring-bottom, -50px);
-  left: var(--ring-left, auto);
-  background: url("../img/coffee-ring.svg") center / contain no-repeat;
-  transform: rotate(var(--ring-turn, 20deg));
-  mix-blend-mode: multiply;
-  pointer-events: none;
-  opacity: 0.9;
-}
+.stained { --stain: url("../img/coffee-ring.svg"); }
 
 /* cigarette burn */
 .burned::before {
@@ -251,8 +242,7 @@ main#app { max-width: 980px; margin: 0 auto; padding: 48px 16px 80px; }
   font-size: 1.05rem;
   margin-bottom: 56px;
   --ring-size: 170px;
-  --ring-right: -60px;
-  --ring-bottom: -40px;
+  --ring-pos: right -50px bottom -60px;
 }
 .note p { margin: 0 0 14px; position: relative; z-index: 1; }
 .note .sig { text-align: right; margin: 0; }
@@ -420,6 +410,22 @@ main#app { max-width: 980px; margin: 0 auto; padding: 48px 16px 80px; }
   mix-blend-mode: multiply;
 }
 
+.assigned-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin: -12px 0 28px;
+  font-family: var(--type);
+  color: var(--fog);
+}
+.assigned-bar p { margin: 0; }
+.assigned-bar strong { color: var(--sodium); font-weight: 400; }
+
+/* GM: a goon who backed out — greyed, kept for the record */
+.crew-card.withdrawn { filter: grayscale(0.85) brightness(0.7); }
+.crew-card.withdrawn .crew-alias { text-decoration: line-through; }
+
 /* ---------- form ---------- */
 
 .form-layout {
@@ -432,10 +438,7 @@ main#app { max-width: 980px; margin: 0 auto; padding: 48px 16px 80px; }
 .form-paper {
   padding: 40px 40px 36px;
   --ring-size: 220px;
-  --ring-top: 120px;
-  --ring-right: -70px;
-  --ring-bottom: auto;
-  --ring-turn: -40deg;
+  --ring-pos: right -80px top 140px;
 }
 .form-paper > * { position: relative; z-index: 1; }
 .form-paper > .clip { position: absolute; z-index: 2; }
@@ -587,10 +590,7 @@ input:focus, textarea:focus {
   padding: 40px 40px 56px;
   max-width: 820px;
   --ring-size: 200px;
-  --ring-top: -50px;
-  --ring-right: 120px;
-  --ring-bottom: auto;
-  --ring-turn: 70deg;
+  --ring-pos: right 110px top -70px;
 }
 .case-file > * { position: relative; z-index: 1; }
 .case-file > .clip { position: absolute; z-index: 2; }
@@ -703,7 +703,7 @@ input:focus, textarea:focus {
   .rules { margin-left: 4px; padding: 16px 18px; }
   .file-alias { padding-right: 0; margin-top: 36px; }
   .file-stamp { font-size: 0.8rem; }
-  .stained::after { --ring-size: 140px; }
+  .stained { --ring-size: 140px; }
   .gm-main { grid-template-columns: 1fr; }
   .gm-controls { position: static; }
   .topbar-note { display: none; }
@@ -721,5 +721,5 @@ input:focus, textarea:focus {
   .gm-main { display: block; padding: 0; }
   .case-file { box-shadow: none; background: #fff; background-image: none; max-width: none; padding: 0; break-after: page; }
   .case-file:last-child { break-after: auto; }
-  .stained::after { display: none; }
+  .stained { --stain: none; }
 }
