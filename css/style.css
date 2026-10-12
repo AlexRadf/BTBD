@@ -105,7 +105,7 @@ button, input, textarea { font: inherit; color: inherit; }
 }
 .topbar-note { font-family: var(--type); text-transform: uppercase; letter-spacing: 0.12em; }
 
-main#app { max-width: 980px; margin: 0 auto; padding: 48px 16px 80px; }
+main#app { max-width: 980px; margin: 0 auto; padding: 48px 16px 80px; overflow-x: clip; }
 
 .footer {
   text-align: center;
@@ -487,6 +487,23 @@ input:focus, textarea:focus {
 ::placeholder { color: var(--ink-soft); opacity: 0.55; }
 
 .q { margin-bottom: 24px; }
+
+.suggest {
+  display: inline-block;
+  margin-top: 6px;
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  font-family: var(--type);
+  font-size: 0.85rem;
+  color: var(--stamp);
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.suggest::before { content: "\2192\00a0"; text-decoration: none; display: inline-block; }
+.suggest:hover { color: var(--ink); }
+.suggest:focus-visible { outline: 2px dashed var(--stamp); outline-offset: 2px; }
 .q label { display: flex; gap: 10px; font-size: 1.02rem; }
 .q-num { color: var(--stamp); flex: none; }
 

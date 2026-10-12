@@ -52,6 +52,39 @@ function renderRoles() {
 
 // ---------- Questionnaire ----------
 
+function examplesFor(id) {
+  if (id === FINAL_QUESTION.id) return EXAMPLE_STENCILS;
+  if (id === "characterName") return EXAMPLE_NAMES;
+  if (id === "look") return EXAMPLE_LOOKS;
+  return EXAMPLES[id] || [];
+}
+
+// "Give me one" drops an example into the field to keep or edit; pressing again cycles.
+const suggestState = new Map(); // field id -> { i, text }
+
+function suggestButton(field, id) {
+  const options = examplesFor(id);
+  if (!options.length) return null;
+  return el(
+    "button",
+    {
+      type: "button",
+      class: "suggest",
+      onclick: () => {
+        const last = suggestState.get(id) || { i: -1, text: null };
+        const current = field.value.trim();
+        if (current && current !== last.text && !confirm("Replace what you've written with an example?")) return;
+        const i = (last.i + 1) % options.length;
+        field.value = options[i];
+        suggestState.set(id, { i, text: options[i] });
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+        field.focus();
+      },
+    },
+    "Give me one"
+  );
+}
+
 function openForm() {
   const role = roleById(state.role);
   if (!role) return show("role");
@@ -60,6 +93,10 @@ function openForm() {
   const form = $("#intake");
   for (const name of ["playerName", "characterName", "look"]) {
     form.elements[name].value = state.fields[name] || "";
+  }
+  for (const name of ["characterName", "look"]) {
+    const input = form.elements[name];
+    if (!input.nextElementSibling) input.after(suggestButton(input, name));
   }
 
   let n = 0;
@@ -76,12 +113,14 @@ function openForm() {
       ? el("input", { id: `q-${item.id}`, name: item.id, maxlength: 40, class: "stencil-input", placeholder: "e.g. GOON #4, KNUCKLES, MR. TUESDAY" })
       : el("textarea", { id: `q-${item.id}`, name: item.id, rows: 3, maxlength: MAX_ANSWER });
     field.value = state.answers[item.id] || "";
+    if (!isStencil && examplesFor(item.id).length) field.placeholder = "e.g. " + examplesFor(item.id)[0];
     nodes.push(
       el(
         "div",
         { class: "q" },
         el("label", { for: `q-${item.id}` }, el("span", { class: "q-num", text: String(n).padStart(2, "0") }), item.q),
-        field
+        field,
+        suggestButton(field, item.id)
       )
     );
   }
