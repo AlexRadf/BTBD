@@ -337,17 +337,75 @@
   // ---------- Feeds ----------
 
   const SCENES = [lobby, corridor, office, roof];
-  const custom = (typeof CONFIG !== "undefined" && Array.isArray(CONFIG.CCTV) && CONFIG.CCTV) || [];
-  const feeds = SCENES.map((scene, i) => {
+  const cfg = typeof CONFIG !== "undefined" ? CONFIG : {};
+  const custom = Array.isArray(cfg.CCTV) ? cfg.CCTV : [];
+
+  function loopingVideo(src, onFail) {
+    const v = document.createElement("video");
+    Object.assign(v, { muted: true, loop: true, playsInline: true, autoplay: true, preload: "auto", src });
+    v.addEventListener("error", onFail);
+    v.play().catch(() => {});
+    return v;
+  }
+
+  // A recording of a whole security wall: each square becomes its own camera.
+  const grid = cfg.CCTV_GRID && cfg.CCTV_GRID.src ? cfg.CCTV_GRID : null;
+  const wall = grid ? { video: null, cols: grid.cols || 4, rows: grid.rows || 3, ok: true } : null;
+  if (wall) wall.video = loopingVideo(grid.src, () => dropWall());
+
+  const tileFeeds = wall
+    ? Array.from({ length: wall.cols * wall.rows }, (_, i) => ({
+        tile: { col: i % wall.cols, row: Math.floor(i / wall.cols) },
+        label: (grid.labels && grid.labels[i]) || `FLOOR ${Math.floor(i / wall.cols) + 1} · ${"ABCDEFGH"[i % wall.cols]}`,
+      }))
+    : [];
+
+  const sceneFeeds = SCENES.map((scene, i) => {
     const feed = { scene, label: (custom[i] && custom[i].label) || scene.label, ev: null, next: rand(6, 18) };
-    if (custom[i] && custom[i].src) {
-      const v = document.createElement("video");
-      Object.assign(v, { muted: true, loop: true, playsInline: true, autoplay: true, src: custom[i].src });
-      v.addEventListener("error", () => (feed.video = null));
-      feed.video = v;
-    }
+    if (custom[i] && custom[i].src) feed.video = loopingVideo(custom[i].src, () => (feed.video = null));
     return feed;
   });
+
+  // Real footage first, then the drawn cameras (which carry the rare events).
+  let feeds = [...tileFeeds, ...sceneFeeds];
+
+  // No video file (yet)? Quietly fall back to the drawn cameras.
+  function dropWall() {
+    if (!wall || !wall.ok) return;
+    wall.ok = false;
+    const was = feeds[current];
+    feeds = sceneFeeds;
+    current = Math.max(0, feeds.indexOf(was));
+    showAll = false;
+    root.querySelector("[data-all]").hidden = true;
+    updatePanel();
+  }
+  const wallReady = () => wall && wall.ok && wall.video.readyState >= 2 && wall.video.videoWidth;
+
+  // Crop one square out of the wall, trimmed to 4:3 so it fills the screen.
+  function drawTile(c, tile) {
+    const v = wall.video;
+    c.filter = "grayscale(1)";
+    const tw = v.videoWidth / wall.cols;
+    const th = v.videoHeight / wall.rows;
+    let sw = tw, sh = th;
+    if (tw / th > 4 / 3) sw = th * (4 / 3);
+    else sh = tw * (3 / 4);
+    c.drawImage(v, tile.col * tw + (tw - sw) / 2, tile.row * th + (th - sh) / 2, sw, sh, 0, 0, W, H);
+    c.filter = "none";
+  }
+
+  function drawWall(c) {
+    const v = wall.video;
+    const scale = Math.min(W / v.videoWidth, H / v.videoHeight);
+    const w = v.videoWidth * scale;
+    const h = v.videoHeight * scale;
+    c.fillStyle = "#000";
+    c.fillRect(0, 0, W, H);
+    c.filter = "grayscale(1)";
+    c.drawImage(v, (W - w) / 2, (H - h) / 2, w, h);
+    c.filter = "none";
+  }
 
   // ---------- Post-processing ----------
 
@@ -392,6 +450,7 @@
   }
 
   let current = 0;
+  let showAll = false;
   let switchUntil = 0;
   let auto = true;
   let lastAutoSwitch = 0;
@@ -399,11 +458,29 @@
 
   function setChannel(i, byUser) {
     current = (i + feeds.length) % feeds.length;
+    showAll = false;
     switchUntil = performance.now() / 1000 + 0.28;
     if (byUser) auto = false;
-    for (const b of root.querySelectorAll("[data-cam]")) b.setAttribute("aria-pressed", String(+b.dataset.cam === current));
+    updatePanel();
+  }
+
+  function updatePanel() {
     const f = feeds[current];
-    root.querySelector(".monitor-label").textContent = `CAM ${pad(current + 1)} · ${f.label}`;
+    root.querySelector(".monitor-label").textContent = showAll ? "MULTIVIEW · ALL CAMERAS" : `CAM ${pad(current + 1)} · ${f.label}`;
+    const allBtn = root.querySelector("[data-all]");
+    allBtn.setAttribute("aria-pressed", String(showAll));
+    root.querySelector("[data-auto]").setAttribute("aria-pressed", String(auto && !showAll));
+  }
+
+  function drawNoSignal(c, text) {
+    c.drawImage(snow[Math.floor(Math.random() * snow.length)], 0, 0);
+    c.fillStyle = "rgba(0,0,0,0.7)";
+    c.fillRect(80, 106, 160, 26);
+    c.fillStyle = "#ddd";
+    c.font = "bold 14px monospace";
+    c.textAlign = "center";
+    c.fillText(text, W / 2, 124);
+    c.textAlign = "left";
   }
 
   function frame(now) {
@@ -412,7 +489,7 @@
     const f = feeds[current];
 
     // events tick on every camera, watched or not
-    for (const feed of feeds) {
+    for (const feed of sceneFeeds) {
       if (feed.ev && t > feed.ev.start + feed.ev.length) feed.ev = null;
       if (!feed.ev && t > feed.next) {
         const pool = feed.scene.events.filter((e) => !e.rare || Math.random() < 0.35);
@@ -434,17 +511,13 @@
     if (Math.random() < 0.02) g.translate(rand(-2, 2), 0);
     if (t < switchUntil) {
       g.drawImage(snow[Math.floor(Math.random() * snow.length)], 0, 0);
-    } else if (witchingMinute(d) && f.scene !== roof) {
-      g.drawImage(snow[Math.floor(Math.random() * snow.length)], 0, 0);
-      g.fillStyle = "rgba(0,0,0,0.7)";
-      g.fillRect(90, 106, 140, 26);
-      g.fillStyle = "#ddd";
-      g.font = "bold 14px monospace";
-      g.textAlign = "center";
-      g.fillText("SIGNAL LOST", W / 2, 124);
-      g.textAlign = "left";
+    } else if (witchingMinute(d) && f.scene !== roof && !showAll) {
+      drawNoSignal(g, "SIGNAL LOST");
     } else {
-      if (f.video && f.video.readyState >= 2) g.drawImage(f.video, 0, 0, W, H);
+      if (showAll && wallReady()) drawWall(g);
+      else if (f.tile && wallReady()) drawTile(g, f.tile);
+      else if (f.tile) drawNoSignal(g, wall && !wall.ok ? "NO VIDEO" : "CONNECTING…");
+      else if (f.video && f.video.readyState >= 2) g.drawImage(f.video, 0, 0, W, H);
       else f.scene.draw(g, t, witchingMinute(d) ? { kind: "perch", start: t, length: 1 } : f.ev);
       // rolling tracking band
       const y = (t * 22) % (H + 40) - 20;
@@ -458,7 +531,7 @@
     // overlay text
     g.font = "10px monospace";
     g.fillStyle = "rgba(230,235,225,0.85)";
-    g.fillText(`CAM ${pad(current + 1)}  ${f.label}`, 8, 16);
+    g.fillText(showAll ? "MULTIVIEW" : `CAM ${pad(current + 1)}  ${f.label}`, 8, 16);
     g.fillText(stamp(d), 8, H - 10);
     if (Math.floor(t * 1.2) % 2 === 0) {
       g.fillStyle = "rgba(220,40,30,0.9)";
@@ -480,10 +553,21 @@
     requestAnimationFrame(loop);
   }
 
-  for (const b of root.querySelectorAll("[data-cam]")) b.addEventListener("click", () => setChannel(+b.dataset.cam, true));
+  root.querySelector("[data-prev]").addEventListener("click", () => setChannel(current - 1, true));
+  root.querySelector("[data-next]").addEventListener("click", () => setChannel(current + 1, true));
   root.querySelector("[data-auto]").addEventListener("click", () => {
     auto = true;
+    showAll = false;
     lastAutoSwitch = performance.now() / 1000;
+    updatePanel();
+  });
+  const allBtn = root.querySelector("[data-all]");
+  allBtn.hidden = !wall;
+  allBtn.addEventListener("click", () => {
+    showAll = !showAll;
+    auto = false;
+    switchUntil = performance.now() / 1000 + 0.28;
+    updatePanel();
   });
   if ("IntersectionObserver" in window) {
     new IntersectionObserver(([e]) => (visible = e.isIntersecting)).observe(canvas);

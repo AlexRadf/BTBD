@@ -65,7 +65,9 @@ Pull counts and who's been taken are saved in your browser, so a refresh mid-gam
 
 The briefing page has a CCTV monitor with four cameras (lobby, corridor, open-plan office, roof). It cycles on its own (SEQ), or players can switch channels with the number keys. The scenes are drawn in code and loop forever. Every so often something happens on one of the cameras, and at 2:13 AM local time the building goes wrong.
 
-To use real footage on a camera instead, set its `src` in `js/config.js` to a looping video clip: an `.mp4` you've added to this repo (e.g. `video/lobby.mp4`) or a direct link to one. It gets the same grain, timestamp and glitches. Free clips: [Mixkit CCTV](https://mixkit.co/free-stock-video/cctv/), [Mixkit security camera](https://mixkit.co/free-stock-video/security-camera/), [Coverr office corridor](https://coverr.co/stock-video-footage/office-corridor). Check each clip's licence.
+**Footage of a whole wall of screens:** drop it in as `video/cctv-wall.mp4` and each square becomes its own camera, with an **ALL** key to see the whole wall. See `video/README.md` for the grid settings and how to shrink the file.
+
+To use real footage on one of the drawn cameras instead, set its `src` in `js/config.js` to a looping video clip: an `.mp4` you've added to this repo (e.g. `video/lobby.mp4`) or a direct link to one. It gets the same grain, timestamp and glitches. Free clips: [Mixkit CCTV](https://mixkit.co/free-stock-video/cctv/), [Mixkit security camera](https://mixkit.co/free-stock-video/security-camera/), [Coverr office corridor](https://coverr.co/stock-video-footage/office-corridor). Check each clip's licence.
 
 ## Running locally
 
