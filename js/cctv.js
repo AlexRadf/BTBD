@@ -344,6 +344,10 @@
     const v = document.createElement("video");
     Object.assign(v, { muted: true, loop: true, playsInline: true, autoplay: true, preload: "auto", src });
     v.addEventListener("error", onFail);
+    // Kept in the page (but invisible) so mobile Safari keeps decoding it.
+    v.setAttribute("aria-hidden", "true");
+    v.style.cssText = "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none";
+    document.body.append(v);
     v.play().catch(() => {});
     return v;
   }
@@ -382,18 +386,39 @@
   }
   const wallReady = () => wall && wall.ok && wall.video.readyState >= 2 && wall.video.videoWidth;
 
-  // Crop one square out of the wall, trimmed to 4:3 so it fills the screen.
-  function drawTile(c, tile) {
+  // Where each square sits in the recording. Without measurements, the frame is split evenly.
+  function tileRect(tile) {
     const v = wall.video;
-    c.filter = "grayscale(1)";
-    const tw = v.videoWidth / wall.cols;
-    const th = v.videoHeight / wall.rows;
-    let sw = tw, sh = th;
-    if (tw / th > 4 / 3) sw = th * (4 / 3);
-    else sh = tw * (3 / 4);
-    c.drawImage(v, tile.col * tw + (tw - sw) / 2, tile.row * th + (th - sh) / 2, sw, sh, 0, 0, W, H);
+    const m = grid.tile;
+    const ins = grid.inset || { top: 0, right: 0, bottom: 0, left: 0 };
+    const tw = m ? m.w : v.videoWidth / wall.cols;
+    const th = m ? m.h : v.videoHeight / wall.rows;
+    const x = (m ? m.x + tile.col * m.stepX : tile.col * tw) + ins.left;
+    const y = (m ? m.y + tile.row * m.stepY : tile.row * th) + ins.top;
+    return { x, y, w: tw - ins.left - ins.right, h: th - ins.top - ins.bottom };
+  }
+
+  // Crop one square out of the wall. Wider than 4:3 gets trimmed at the sides, but only down
+  // to 1.45:1; the last bit of stretch is less noticeable than losing the picture.
+  function drawTile(c, tile) {
+    const r = tileRect(tile);
+    let { x, y, w, h } = r;
+    if (w / h > 1.45) {
+      const keep = h * 1.45;
+      x += (w - keep) / 2;
+      w = keep;
+    } else if (w / h < 4 / 3) {
+      const keep = w * 0.75;
+      y += (h - keep) / 2;
+      h = keep;
+    }
+    c.filter = GRADE;
+    c.drawImage(wall.video, x, y, w, h, 0, 0, W, H);
     c.filter = "none";
   }
+
+  // Real footage is graded down to sit with the drawn cameras: grey, darker, harder.
+  const GRADE = "grayscale(1) brightness(0.78) contrast(1.2)";
 
   function drawWall(c) {
     const v = wall.video;
@@ -402,7 +427,7 @@
     const h = v.videoHeight * scale;
     c.fillStyle = "#000";
     c.fillRect(0, 0, W, H);
-    c.filter = "grayscale(1)";
+    c.filter = GRADE;
     c.drawImage(v, (W - w) / 2, (H - h) / 2, w, h);
     c.filter = "none";
   }

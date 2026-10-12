@@ -12,4 +12,6 @@ To shrink a big file with ffmpeg:
 ffmpeg -i original.mp4 -an -vf "scale=1280:-2,fps=15" -c:v libx264 -crf 30 -preset slow -movflags +faststart cctv-wall.mp4
 ```
 
-Until the file is here, the monitor shows its four drawn cameras.
+If you swap in a different recording, re-measure `tile` (where the first square starts, its size, and the step to the next one) and `inset` (how much to trim off each square's burned-in frame and captions). If you leave out `tile`, the frame is split evenly.
+
+If the file is missing, the monitor shows only its four drawn cameras.
