@@ -81,6 +81,26 @@
     </section>
 
     <section class="night-col">
+      <div class="paper night-card moment-card">
+        <h2 class="night-h">Make a moment</h2>
+        <div class="moment-controls">
+          <div class="moment-kinds" role="radiogroup" aria-label="Kind of moment" id="moment-kinds"></div>
+          <label class="moment-target">Aimed at
+            <select id="moment-target"></select>
+          </label>
+        </div>
+        <button class="btn" type="button" id="btn-moment">Make it</button>
+        <div class="moment" id="moment" hidden>
+          <p class="moment-label">Setup</p>
+          <p id="moment-setup"></p>
+          <p class="moment-label">The turn</p>
+          <p id="moment-turn"></p>
+          <p class="moment-label">The pull</p>
+          <p id="moment-pull" class="moment-pull"></p>
+          <p class="moment-source" id="moment-source"></p>
+        </div>
+      </div>
+
       <div class="paper night-card">
         <h2 class="night-h">Pressure points <span id="hooks-who"></span></h2>
         <p class="hint">What their own answers give you. Tap a goon in the tower list to switch.</p>
@@ -93,21 +113,6 @@
         <button class="btn btn-small" type="button" id="btn-beat">Draw</button>
       </div>
 
-      <div class="index-card night-card">
-        <h2 class="night-h">Ambience</h2>
-        <div class="sound-row">
-          <button class="btn btn-small btn-ghost sound-loop" type="button" data-loop="rain">Rain</button>
-          <button class="btn btn-small btn-ghost sound-loop" type="button" data-loop="hum">Building hum</button>
-        </div>
-        <div class="sound-row">
-          <button class="btn btn-small" type="button" data-shot="thud">Distant impact</button>
-          <button class="btn btn-small" type="button" data-shot="steps">Footsteps above</button>
-          <button class="btn btn-small" type="button" data-shot="creak">Metal creak</button>
-          <button class="btn btn-small" type="button" data-shot="static">Radio static</button>
-          <button class="btn btn-small" type="button" data-shot="snap">Something moves</button>
-        </div>
-        <label class="volume">Volume <input type="range" id="volume" min="0" max="1" step="0.05" value="0.6"></label>
-      </div>
     </section>
   </main>
 

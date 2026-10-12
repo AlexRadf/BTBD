@@ -152,6 +152,7 @@ function renderNight() {
   );
 
   renderHooks(list.find((d) => d.id === night.focus));
+  renderMomentControls(list.filter((d) => night.status[d.id] !== "taken"));
 }
 
 function renderHooks(d) {
@@ -188,7 +189,6 @@ function setTaken(d, taken) {
     night.status[d.id] = "taken";
     night.sinceBuild = 0;
     showScene(`${nameOf(d)} is gone`, fill(pick(TAKEN), d));
-    sound("snap");
   } else {
     delete night.status[d.id];
   }
@@ -204,7 +204,7 @@ $("#btn-rebuild").addEventListener("click", () => {
 
 $("#btn-new-night").addEventListener("click", () => {
   if (!confirm("Start a new night? Clears pulls and brings everyone back.")) return;
-  Object.assign(night, { status: {}, pulls: {}, sinceBuild: 0 });
+  Object.assign(night, { status: {}, pulls: {}, sinceBuild: 0, used: [] });
   $("#scene").hidden = true;
   saveNight();
   renderNight();
@@ -220,194 +220,160 @@ $("#btn-beat").addEventListener("click", () => {
   $("#beat").textContent = fill(BEATS[i], alive.length ? pick(alive) : {});
 });
 
-// ---------- Ambience (synthesised, no audio files) ----------
+// ---------- Moments: setup + turn + pull, built from a goon's answers ----------
 
-let ctx, master;
-const loops = {};
+const PLACES = [
+  "the loading dock",
+  "a stairwell with no lights",
+  "the security office",
+  "a maintenance crawlspace",
+  "the vault antechamber",
+  "the service elevator",
+  "the roof access corridor",
+  "a storage room full of covered furniture",
+  "the boiler room",
+  "the long hallway on the top floor",
+];
 
-function audio() {
-  if (!ctx) {
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
-    master = ctx.createGain();
-    master.gain.value = +$("#volume").value;
-    master.connect(ctx.destination);
-  }
-  if (ctx.state === "suspended") ctx.resume();
-  return ctx;
-}
+const SETUPS = [
+  "{who} is alone in {place}. The rest of the crew is a floor away.",
+  "{who} and {other} are working {place}. The radio has been quiet for too long.",
+  "The crew splits up. {who} takes {place}.",
+  "{place}. The lights are on a timer, and the timer just ran out. {who} is closest to the switch.",
+  "{who} is the last one through {place}. The door swings shut behind them.",
+  "{who} stops in {place} to catch their breath. {other} keeps going without them.",
+];
 
-function noiseBuffer(seconds = 2) {
-  const buf = ctx.createBuffer(1, ctx.sampleRate * seconds, ctx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-  return buf;
-}
-
-function noise(seconds) {
-  const src = ctx.createBufferSource();
-  src.buffer = noiseBuffer(seconds);
-  return src;
-}
-
-function chain(...nodes) {
-  nodes.reduce((a, b) => (a.connect(b), b));
-  return nodes[nodes.length - 1];
-}
-
-function envelope(attack, hold, release, peak = 1) {
-  const g = ctx.createGain();
-  const t = ctx.currentTime;
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(peak, t + attack);
-  g.gain.setValueAtTime(peak, t + attack + hold);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + attack + hold + release);
-  return g;
-}
-
-const LOOPS = {
-  rain() {
-    const src = noise(4);
-    src.loop = true;
-    const lp = ctx.createBiquadFilter();
-    lp.type = "lowpass";
-    lp.frequency.value = 1800;
-    const hp = ctx.createBiquadFilter();
-    hp.type = "highpass";
-    hp.frequency.value = 300;
-    const g = ctx.createGain();
-    g.gain.value = 0.35;
-    chain(src, hp, lp, g, master);
-    src.start();
-    return () => src.stop();
+const MOMENT_KINDS = {
+  scare: {
+    label: "Scare",
+    questions: Object.keys(TWISTS),
+    turns: null, // uses that question's twist line
+    fallback: "Something in {place} knows what {who} told the boss: “{a}”. It's here, and it's waiting.",
+    pulls: [
+      "Pull to hold it together. Refuse, and {who} runs — and ends up somewhere the crew can't follow.",
+      "Pull to keep looking. Refuse, and {who} looks away; when they look back, something has moved.",
+      "Pull to stay quiet. Refuse, and {who} cries out; everyone in the building now knows where the crew is.",
+    ],
   },
-  hum() {
-    const g = ctx.createGain();
-    g.gain.value = 0.12;
-    const lp = ctx.createBiquadFilter();
-    lp.type = "lowpass";
-    lp.frequency.value = 220;
-    chain(lp, g, master);
-    const oscs = [55, 55.4, 110.3].map((f) => {
-      const o = ctx.createOscillator();
-      o.type = "sawtooth";
-      o.frequency.value = f;
-      o.connect(lp);
-      o.start();
-      return o;
-    });
-    return () => oscs.forEach((o) => o.stop());
+  split: {
+    label: "Turn the crew",
+    questions: ["l_trust", "b_expendable", "m_bullet", "d_crew", "g_owed", "r_hero", "i_rat", "b_secret", "b_lastcrew", "r_lie", "g_never"],
+    turns: [
+      "{other} finds out what {who} said: “{a}”.",
+      "{other} asks {who}, face to face, about “{a}”. Everyone else goes quiet.",
+      "Something in the dark makes sure {other} hears it: “{a}”. It's {who}'s secret.",
+    ],
+    fallback: "{other} gets hold of {who}'s personnel file and reads it: “{a}”.",
+    pulls: [
+      "{who} pulls to talk {other} down. Refuse, and the two of them split up for the rest of the job.",
+      "{other} pulls to trust {who} anyway. Refuse, and {other} won't watch {who}'s back again tonight.",
+    ],
   },
-};
-
-function thudAt(when, gain = 0.9, freq = 70) {
-  const o = ctx.createOscillator();
-  o.frequency.setValueAtTime(freq, ctx.currentTime + when);
-  o.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + when + 0.4);
-  const g = ctx.createGain();
-  g.gain.setValueAtTime(0.0001, ctx.currentTime);
-  g.gain.setValueAtTime(0.0001, ctx.currentTime + when);
-  g.gain.exponentialRampToValueAtTime(gain, ctx.currentTime + when + 0.01);
-  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + when + 0.5);
-  chain(o, g, master);
-  o.start(ctx.currentTime + when);
-  o.stop(ctx.currentTime + when + 0.6);
-}
-
-const SHOTS = {
-  thud() {
-    thudAt(0, 1, 60);
-    const n = noise(1);
-    const lp = ctx.createBiquadFilter();
-    lp.type = "lowpass";
-    lp.frequency.value = 400;
-    chain(n, lp, envelope(0.005, 0.02, 0.6, 0.5), master);
-    n.start();
+  temptation: {
+    label: "Temptation",
+    questions: ["p_cut", "b_life", "i_after", "r_money", "s_kept", "p_home", "w_teacher"],
+    turns: [
+      "{who} finds a way out that leaves everyone else behind. It would take care of “{a}”.",
+      "An unlocked side door, and a bag nobody has counted. Enough for “{a}”. Only {who} has seen it.",
+      "{who}'s phone lights up: a clean exit, right now, if they ditch the crew. The message mentions “{a}”.",
+    ],
+    fallback: "{who} is offered a way out. The voice on the line knows about “{a}”.",
+    pulls: [
+      "Pull to walk away from it. Refuse, and {who} takes it — the crew finds out at the worst possible moment.",
+      "Pull to tell the crew. Refuse, and {who} keeps it to themselves — and owes something in the dark a favour.",
+    ],
   },
-  steps() {
-    let t = 0;
-    for (let i = 0; i < 6; i++) {
-      t += 0.45 + Math.random() * 0.15;
-      thudAt(t, 0.35 - i * 0.04, 90);
-    }
-  },
-  creak() {
-    const o = ctx.createOscillator();
-    o.type = "sawtooth";
-    const t = ctx.currentTime;
-    o.frequency.setValueAtTime(70, t);
-    o.frequency.linearRampToValueAtTime(110, t + 0.8);
-    o.frequency.linearRampToValueAtTime(60, t + 1.8);
-    const bp = ctx.createBiquadFilter();
-    bp.type = "bandpass";
-    bp.frequency.value = 900;
-    bp.Q.value = 12;
-    chain(o, bp, envelope(0.2, 1.2, 0.6, 0.5), master);
-    o.start();
-    o.stop(t + 2.2);
-  },
-  static() {
-    const n = noise(2);
-    const hp = ctx.createBiquadFilter();
-    hp.type = "bandpass";
-    hp.frequency.value = 2500;
-    hp.Q.value = 0.7;
-    const g = ctx.createGain();
-    const t = ctx.currentTime;
-    g.gain.setValueAtTime(0, t);
-    for (let i = 0; i < 14; i++) g.gain.setValueAtTime(Math.random() < 0.6 ? 0.25 : 0.02, t + i * 0.1);
-    g.gain.setValueAtTime(0, t + 1.5);
-    chain(n, hp, g, master);
-    n.start();
-  },
-  snap() {
-    // Two quick rushes of air, like heavy fabric pulled taut.
-    [0, 0.12].forEach((delay, i) => {
-      const n = noise(0.5);
-      const bp = ctx.createBiquadFilter();
-      bp.type = "bandpass";
-      bp.frequency.value = 1200 - i * 400;
-      bp.Q.value = 0.9;
-      const g = ctx.createGain();
-      const t = ctx.currentTime + delay;
-      g.gain.setValueAtTime(0.0001, ctx.currentTime);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.8, t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
-      chain(n, bp, g, master);
-      n.start(t);
-    });
+  closecall: {
+    label: "Close call",
+    questions: ["w_route", "l_signal", "s_roll", "t_backdoor", "t_alarm", "t_gadget", "g_gun", "m_weapon", "d_bag", "w_glovebox", "i_name", "r_pocket", "s_lock"],
+    turns: [
+      "Everything comes down to {who} and “{a}”. It has to work, right now.",
+      "{who} reaches for the thing they always count on (“{a}”) — and it isn't where they left it.",
+      "{other} is cornered. Only {who}'s “{a}” can get them out.",
+    ],
+    fallback: "It all comes down to {who} — and what they told the boss: “{a}”.",
+    pulls: [
+      "Pull to pull it off. Refuse, and someone else has to cover — {other} pulls instead, or it fails.",
+      "Pull once to try, twice to do it quietly. Stop after one and it works — loudly.",
+    ],
   },
 };
 
-function sound(name) {
-  try {
-    audio();
-    SHOTS[name]();
-  } catch (err) {
-    console.error(err);
-  }
+night.kind = night.kind || "scare";
+night.used = night.used || [];
+
+function renderMomentControls(alive) {
+  $("#moment-kinds").replaceChildren(
+    ...Object.entries(MOMENT_KINDS).map(([k, v]) =>
+      el(
+        "button",
+        {
+          type: "button",
+          role: "radio",
+          class: "kind" + (night.kind === k ? " on" : ""),
+          "aria-checked": String(night.kind === k),
+          onclick: () => ((night.kind = k), saveNight(), renderMomentControls(crew().filter((d) => night.status[d.id] !== "taken"))),
+        },
+        v.label
+      )
+    )
+  );
+  const sel = $("#moment-target");
+  const keep = sel.value;
+  sel.replaceChildren(el("option", { value: "", text: "Anyone still in" }), ...alive.map((d) => el("option", { value: d.id, text: nameOf(d) })));
+  if (alive.some((d) => d.id === keep)) sel.value = keep;
 }
 
-for (const b of document.querySelectorAll("[data-shot]")) b.addEventListener("click", () => sound(b.dataset.shot));
+function fillMoment(template, ctx) {
+  const text = fill(template, ctx.who, ctx.answer)
+    .replaceAll("{other}", ctx.other ? nameOf(ctx.other) : "the boss")
+    .replaceAll("{place}", ctx.place);
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
 
-for (const b of document.querySelectorAll("[data-loop]")) {
-  b.addEventListener("click", () => {
-    audio();
-    const name = b.dataset.loop;
-    if (loops[name]) {
-      loops[name]();
-      delete loops[name];
-    } else {
-      loops[name] = LOOPS[name]();
-    }
-    b.classList.toggle("on", !!loops[name]);
-    b.setAttribute("aria-pressed", String(!!loops[name]));
+function makeMoment() {
+  const alive = crew().filter((d) => night.status[d.id] !== "taken");
+  if (!alive.length) return showMoment(null, "Nobody's left in the building.");
+  const chosen = alive.find((d) => d.id === $("#moment-target").value);
+  const kind = MOMENT_KINDS[night.kind];
+
+  // Candidate answers: this kind's questions first, any answer as a fallback. Fresh ones before reused ones.
+  const people = chosen ? [chosen] : alive;
+  const all = people.flatMap((d) => d.answers.filter((a) => a.a && a.id !== FINAL_QUESTION.id).map((a) => ({ d, a })));
+  const fit = all.filter(({ a }) => kind.questions.includes(a.id));
+  const pool = fit.length ? fit : all;
+  if (!pool.length) return showMoment(null, "They haven't written anything to use yet.");
+  const fresh = pool.filter(({ d, a }) => !night.used.includes(`${d.id}:${a.id}`));
+  const { d: who, a } = pick(fresh.length ? fresh : pool);
+  night.used.push(`${who.id}:${a.id}`);
+  saveNight();
+
+  const others = alive.filter((x) => x.id !== who.id);
+  const ctx = { who, answer: a.a, q: a.q, other: others.length ? pick(others) : null, place: pick(PLACES) };
+  let turn;
+  if (!fit.length) turn = kind.fallback;
+  else if (kind.turns) turn = pick(kind.turns);
+  else turn = TWISTS[a.id];
+
+  showMoment({
+    setup: fillMoment(pick(SETUPS.filter((s) => ctx.other || !s.includes("{other}"))), ctx),
+    turn: fillMoment(turn, ctx),
+    pull: fillMoment(pick(kind.pulls), ctx),
+    source: `From ${nameOf(who)}'s answer to “${a.q}”`,
   });
 }
 
-$("#volume").addEventListener("input", (e) => {
-  if (master) master.gain.value = +e.target.value;
-});
+function showMoment(m, empty) {
+  $("#moment").hidden = false;
+  $("#moment-setup").textContent = m ? m.setup : empty;
+  $("#moment-turn").textContent = m ? m.turn : "";
+  $("#moment-pull").textContent = m ? m.pull : "";
+  $("#moment-source").textContent = m ? m.source : "";
+  for (const n of document.querySelectorAll("#moment .moment-label, #moment-turn, #moment-pull")) n.hidden = !m;
+}
+
+$("#btn-moment").addEventListener("click", makeMoment);
 
 // ---------- Tabs ----------
 

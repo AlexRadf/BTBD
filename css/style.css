@@ -785,11 +785,43 @@ input:focus, textarea:focus {
 
 .beat { margin: 0 0 16px; font-size: 1.1rem; min-height: 52px; }
 
-.sound-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
-.sound-row .btn { transform: none; }
-.sound-loop.on { background: var(--sodium); color: var(--night); text-shadow: none; }
-.volume { display: flex; align-items: center; gap: 12px; color: var(--ink-soft); }
-.volume input { margin: 0; flex: 1; max-width: 240px; border: 0; padding: 0; accent-color: var(--stamp); }
+.moment-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 14px 24px; margin-bottom: 18px; }
+.moment-kinds { display: flex; flex-wrap: wrap; gap: 6px; }
+.kind {
+  font-family: var(--type);
+  font-size: 0.9rem;
+  background: transparent;
+  color: var(--ink-soft);
+  border: 1px solid rgba(29, 25, 20, 0.35);
+  padding: 4px 10px;
+  border-radius: 1px;
+  cursor: pointer;
+}
+.kind:hover { color: var(--ink); border-color: var(--ink); }
+.kind.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.kind:focus-visible { outline: 2px dashed var(--stamp); outline-offset: 2px; }
+.moment-target { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: var(--ink-soft); }
+.moment-target select {
+  font-family: var(--type);
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(29, 25, 20, 0.35);
+  padding: 4px 8px;
+  min-width: 180px;
+}
+.moment { margin-top: 22px; padding-top: 6px; border-top: 2px solid var(--ink); }
+.moment p { margin: 0 0 12px; font-size: 1.05rem; }
+.moment .moment-label {
+  margin: 12px 0 2px;
+  font-family: var(--head);
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--stamp);
+}
+.moment .moment-pull { font-weight: 400; background: rgba(156, 36, 27, 0.08); padding: 8px 10px; border-left: 3px solid var(--stamp); }
+.moment .moment-source { margin-top: 16px; font-size: 0.8rem; color: var(--ink-soft); }
 
 /* ---------- small screens ---------- */
 

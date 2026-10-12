@@ -138,7 +138,7 @@ function jsonp(url, params = {}, timeoutMs = 15000) {
       timeoutMs
     );
     window[cb] = (data) => done(resolve, data);
-    s.onerror = () => done(reject, new Error("Google refused — check the deployment's access is set to Anyone"));
+    s.onerror = () => done(reject, new Error("Google refused — if you're signed into several Google accounts, try a private window; otherwise check the deployment's access is Anyone"));
     // A script that loads but never calls back is an old deployment or a Google error page.
     s.onload = () => setTimeout(() => window[cb] && done(reject, new Error("got a page instead of data — redeploy the latest Code.gs as a new version")), 50);
     s.src = `${url}${url.includes("?") ? "&" : "?"}${q}`;

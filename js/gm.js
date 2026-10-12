@@ -74,12 +74,24 @@ function removeLocal(id) {
   renderList();
 }
 
+// Plain fetch first: it carries no Google cookies, so being signed into several Google
+// accounts can't send it to the wrong one. JSONP is the fallback for when CORS gets in the way.
+async function readSheet(key) {
+  try {
+    const res = await fetch(`${CONFIG.ENDPOINT}?key=${encodeURIComponent(key)}`, { credentials: "omit" });
+    return await res.json();
+  } catch (err) {
+    console.warn("fetch failed, trying JSONP", err);
+    return jsonp(CONFIG.ENDPOINT, { key });
+  }
+}
+
 async function pull(key) {
   const status = $("#remote-status");
   if (!CONFIG.ENDPOINT) return;
   status.textContent = "Calling the sheet…";
   try {
-    const json = await jsonp(CONFIG.ENDPOINT, { key });
+    const json = await readSheet(key);
     if (!json.ok) throw new Error(json.error || "Rejected");
     remote = json.dossiers;
     store(KEY_KEY, key);

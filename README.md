@@ -42,6 +42,7 @@ If you change `Code.gs` later, use **Deploy → Manage deployments → Edit → 
 
 Open your `/exec` URL in a private/incognito window. You should see `{"ok":false,"error":"unauthorized"}`.
 
+- **Works in a private window but not in your normal browser**: you're signed into more than one Google account. Players won't hit this; for your own testing, use a private window or a browser profile with only the account that owns the script.
 - **A Google sign-in page**: under Deploy → Manage deployments, set *Who has access* to **Anyone**. "Anyone with a Google account" isn't enough.
 - **"Script function not found"**, or the GM page says *got a page instead of data*: the deployment is running old code. Paste in the latest `Code.gs`, then Deploy → Manage deployments → Edit (pencil) → Version: **New version** → Deploy.
 - **`GM_KEY script property is not set`**: add it under Project Settings → Script Properties.
@@ -56,7 +57,7 @@ The second tab on `gm.html` is for running the game:
 - **The tower**: tap *Pull* each time someone pulls a block. The gauge shows how shaky the tower is getting. *It fell* marks that goon as taken and deals you a scene describing how they vanish.
 - **Pressure points**: for the selected goon, scares built from their own answers.
 - **Something in the building**: draws a random unsettling beat, aimed at a goon who's still in.
-- **Ambience**: rain and building hum loops, plus one-shot sounds, all generated in the browser.
+- **Make a moment**: choose a kind (Scare, Turn the crew, Temptation, Close call) and a target, and it builds a ready-to-read moment: a setup somewhere in the building, a turn taken from one of that goon's answers, and the pull with what happens if they refuse. It works through answers you haven't used yet before repeating any.
 
 Pull counts and who's been taken are saved in your browser, so a refresh mid-game is safe.
 

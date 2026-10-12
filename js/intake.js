@@ -149,11 +149,11 @@ async function sendToBoss(dossier) {
   let res;
   try {
     // text/plain keeps this a "simple" request, which Apps Script accepts without a CORS preflight.
-    res = await fetch(CONFIG.ENDPOINT, { method: "POST", body });
+    res = await fetch(CONFIG.ENDPOINT, { method: "POST", body, credentials: "omit" });
   } catch {
     // Unreadable reply. Send it again blind; Apps Script still runs doPost, and re-filing
     // the same id just overwrites the same row.
-    await fetch(CONFIG.ENDPOINT, { method: "POST", body, mode: "no-cors" });
+    await fetch(CONFIG.ENDPOINT, { method: "POST", body, mode: "no-cors", credentials: "omit" });
     return "unconfirmed";
   }
   const text = await res.text();
