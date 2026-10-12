@@ -3,4 +3,12 @@
 // to send you, which you paste into the GM page.
 const CONFIG = {
   ENDPOINT: "https://script.google.com/macros/s/AKfycbw1mmiMnbuXxPtJCqRzC4xi6haffUZ5UpSoTHBOQBS6vurtbTQD__gqHa_UqPbseVUQng/exec",
+  // Security monitor on the briefing page. Leave src empty to use the built-in scenes,
+  // or point one at a looping video clip (an .mp4 in this repo, or a direct link).
+  CCTV: [
+    { label: "LOBBY", src: "" },
+    { label: "CORRIDOR 3F", src: "" },
+    { label: "OPEN PLAN 4F", src: "" },
+    { label: "ROOF ACCESS", src: "" },
+  ],
 };
